@@ -36,7 +36,7 @@ const useAuthenticator = () => {
             setReady(true);
         }
 
-    }, []);
+    }, [authStorage]);
 
     const login = async (identity: string, password: string) => {
         return await axios.post(ROUTES.USERS.LOGIN, { identity, password }).then(response => {

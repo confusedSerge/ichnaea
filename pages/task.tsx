@@ -16,14 +16,14 @@ import useAuthStorage from "@/lib/hook/useAuthStorage";
 import List from "@/lib/interface/list";
 import Task from "@/lib/interface/task";
 
-// Icons
-import { Archive, Cancel, Check, Clock, DoubleCheck, Emoji, EmojiLookDown, EmojiPuzzled, EmojiSatisfied, EmojiSingLeftNote, EmojiThinkRight, Plus, Trash } from "iconoir-react";
-
 // Components
 import ErrorPage from "@/components/defaults/errorpage";
 import Input from "@/components/basics/input";
 import Textarea from "@/components/basics/textarea";
 import Button from "@/components/basics/button";
+
+// Iconoir
+import { Plus } from "iconoir-react";
 
 export default function TaskPage() {
 
@@ -141,8 +141,9 @@ const ListView = ({ list, mutateCallback }: { list: List, mutateCallback: () => 
             <div className="w-full flex flex-row justify-between items-center py-2">
                 <h1 className="w-full flex bg-inherit font-black text-2xl sm:text-3xl 2xl:text-4xl outline-none">{list.name}</h1>
 
-                <Button descriptor={sorting[sortBy][1]} onClick={() => { setSortBy((sortBy + 1) % sorting.length) }} />
-
+                <div onDoubleClick={(e: any) => { e.stopPropagation(); }}>
+                    <Button descriptor={sorting[sortBy][1]} onClick={(e: any) => { setSortBy((sortBy + 1) % sorting.length); }} />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8 2xl:gap-16 py-4">
@@ -163,7 +164,7 @@ const AddListView = ({ mutateCallback }: { mutateCallback: () => void }) => {
     const auth = useAuthStorage();
 
     const [show, setShow] = useState<boolean>(false);
-    const [newList, setNewList] = useState({ name: "New List" });
+    const [newList, setNewList] = useState({ name: "" });
 
     const create = async () => {
         createList({
@@ -184,14 +185,14 @@ const AddListView = ({ mutateCallback }: { mutateCallback: () => void }) => {
 
     if (!show) {
         return (
-            <div className="flex flex-row items-center justify-center w-full rounded-lg border-2 border-dashed border-gray-300 group cursor-pointer" onClick={() => setShow(true)}>
+            <div className="flex flex-row items-center justify-center w-full my-16 rounded-lg border-2 border-dashed border-gray-300 group cursor-pointer" onClick={() => setShow(true)}>
                 <Plus className="my-2 stroke-2 text-3xl text-center text-gray-300 group-hover:animate-wiggle" />
             </div>
         )
     }
 
     return (
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col w-full my-16">
             <div className="w-full flex flex-row">
                 <div className="flex flex-grow flex-row border-5 border-r-0 border-secondary">
                     <input type="text" className="w-4/5 flex flex-grow px-2 border-t-5 border-l-5 focus:outline-none font-light"

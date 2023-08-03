@@ -10,8 +10,13 @@ export abstract class ROUTES {
     }
 
     static readonly TASKS = {
-        LIST: `${ROUTES.PREFIX}lists/records`,
-        TASK: `${ROUTES.PREFIX}tasks/records`,
+        LIST: `${ROUTES.PREFIX}task_lists/records`,
+        TASK: `${ROUTES.PREFIX}task_tasks/records`,
     }
 
+    static readonly HABITS = {
+        HABIT: `${ROUTES.PREFIX}habit_names/records`,
+        TRACK: `${ROUTES.PREFIX}habit_tracks/records`,
+    }
+    
 }

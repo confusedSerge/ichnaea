@@ -2,7 +2,7 @@
 import Link from "next/link";
 
 // Iconoir
-import { DoubleCheck, Planet, ProfileCircle, Timer } from "iconoir-react";
+import { DoubleCheck, Hourglass, Planet, ProfileCircle, Timer } from "iconoir-react";
 import { useRouter } from "next/router";
 
 const Navbar: React.FC<{}> = () => {
@@ -19,6 +19,10 @@ const Navbar: React.FC<{}> = () => {
 
                 <Link href="/timer" className="flex aspect-square justify-center items-center group">
                     <Timer className="p-2 stroke-2 text-3xl text-center group-hover:animate-wiggle" />
+                </Link>
+
+                <Link href="/habit" className="flex aspect-square justify-center items-center group">
+                    <Hourglass className="p-2 stroke-2 text-3xl text-center group-hover:animate-wiggle" />
                 </Link>
 
                 <Link href="/task" className="flex aspect-square justify-center items-center group">

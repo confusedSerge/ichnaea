@@ -44,49 +44,8 @@
     }
   },
   {
-    "id": "iex9tgz0yuly6al",
-    "name": "lists",
-    "type": "base",
-    "system": false,
-    "schema": [
-      {
-        "id": "j744orco",
-        "name": "name",
-        "type": "text",
-        "system": false,
-        "required": false,
-        "options": {
-          "min": null,
-          "max": null,
-          "pattern": ""
-        }
-      },
-      {
-        "id": "udy7oya8",
-        "name": "owner",
-        "type": "relation",
-        "system": false,
-        "required": false,
-        "options": {
-          "collectionId": "_pb_users_auth_",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": []
-        }
-      }
-    ],
-    "indexes": [],
-    "listRule": "@request.auth.id = owner.id",
-    "viewRule": null,
-    "createRule": "@request.auth.id = owner.id",
-    "updateRule": "@request.auth.id = owner.id",
-    "deleteRule": "@request.auth.id = owner.id",
-    "options": {}
-  },
-  {
     "id": "jnz3gqb62widj4b",
-    "name": "tasks",
+    "name": "task_tasks",
     "type": "base",
     "system": false,
     "schema": [
@@ -160,6 +119,128 @@
     "createRule": "@request.auth.id = list.owner.id",
     "updateRule": "@request.auth.id = list.owner.id",
     "deleteRule": "@request.auth.id = list.owner.id",
+    "options": {}
+  },
+  {
+    "id": "iex9tgz0yuly6al",
+    "name": "task_lists",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "id": "j744orco",
+        "name": "name",
+        "type": "text",
+        "system": false,
+        "required": false,
+        "options": {
+          "min": null,
+          "max": null,
+          "pattern": ""
+        }
+      },
+      {
+        "id": "udy7oya8",
+        "name": "owner",
+        "type": "relation",
+        "system": false,
+        "required": false,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": []
+        }
+      }
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id = owner.id",
+    "viewRule": null,
+    "createRule": "@request.auth.id = owner.id",
+    "updateRule": "@request.auth.id = owner.id",
+    "deleteRule": "@request.auth.id = owner.id",
+    "options": {}
+  },
+  {
+    "id": "k2mhqvh007366s4",
+    "name": "habit_names",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "id": "jtfxijdk",
+        "name": "name",
+        "type": "text",
+        "system": false,
+        "required": false,
+        "options": {
+          "min": null,
+          "max": null,
+          "pattern": ""
+        }
+      },
+      {
+        "id": "pqihgeuw",
+        "name": "user",
+        "type": "relation",
+        "system": false,
+        "required": false,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": []
+        }
+      }
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id = user.id",
+    "viewRule": null,
+    "createRule": "@request.auth.id = user.id",
+    "updateRule": "@request.auth.id = user.id",
+    "deleteRule": "@request.auth.id = user.id",
+    "options": {}
+  },
+  {
+    "id": "gj8usrgp5r71mit",
+    "name": "habit_tracks",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "id": "yzjs5a6f",
+        "name": "habit",
+        "type": "relation",
+        "system": false,
+        "required": false,
+        "options": {
+          "collectionId": "k2mhqvh007366s4",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": []
+        }
+      },
+      {
+        "id": "w3ehsen1",
+        "name": "timestamp",
+        "type": "number",
+        "system": false,
+        "required": false,
+        "options": {
+          "min": null,
+          "max": null
+        }
+      }
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id = habit.user.id",
+    "viewRule": null,
+    "createRule": "@request.auth.id = habit.user.id",
+    "updateRule": "@request.auth.id = habit.user.id",
+    "deleteRule": "@request.auth.id = habit.user.id",
     "options": {}
   }
 ]

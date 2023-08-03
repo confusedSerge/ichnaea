@@ -24,10 +24,10 @@ I chose the [Montserrat](https://fonts.google.com/specimen/Montserrat) font for 
 
 - [x] Timer (i.e. to use as Pomodoro, or to track time spent on different activities)
 - [x] Todo List
-- [ ] Notes
 - [ ] Habit Tracker
 - [ ] Shopping/Ingredients Bucket like List (i.e. to use for meal planning, or to keep track of things you need to buy for certain activities, projects, etc.)
 - [ ] Calendar
+- [ ] Notes
 
 All of these features are meant to be simple and easy to use, and when the project matures to be able to be used together. 
 
