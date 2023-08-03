@@ -7,7 +7,10 @@ import Router from "next/router";
 
 // API
 import { createList, createTask, deleteList, deleteTask, updateList, updateTask, useFetchLists, useFetchTasks } from "@/lib/api/tasks";
-import useAuthenticated from "@/lib/hook/useAuthenticated";
+
+// Auth Hooks
+import useAuthenticator from "@/lib/hook/useAuthenticator";
+import useAuthStorage from "@/lib/hook/useAuthStorage";
 
 // Interfaces
 import List from "@/lib/interface/list";
@@ -18,18 +21,19 @@ import { Archive, Cancel, Check, Clock, DoubleCheck, Emoji, EmojiLookDown, Emoji
 
 // Components
 import ErrorPage from "@/components/defaults/errorpage";
-import IconSelector from "@/components/icons/iconselector";
+import Input from "@/components/basics/input";
+import Textarea from "@/components/basics/textarea";
+import Button from "@/components/basics/button";
 
 export default function TaskPage() {
 
-    const auth = useAuthenticated();
+    const auth = useAuthenticator();
 
     useEffect(() => {
         if (auth.isReady && !auth.isAuthenticated) {
-            Router.push("/login");
+            Router.push("/");
         }
     }, [auth]);
-
 
     // get the data from the API
     const { data: lists, error: listError, mutate: listMutate } = useFetchLists(auth.isReady && auth.isAuthenticated);
@@ -57,16 +61,16 @@ export default function TaskPage() {
 
 const ListView = ({ list, mutateCallback }: { list: List, mutateCallback: () => void }) => {
 
-    const auth = useAuthenticated();
+    const auth = useAuthStorage();
 
-    const sorting = ["not-completed", "completed"]
-    const [sortBy, setSortBy] = useState<string>(sorting[0]);
+    const sorting = [["not-completed", "Not Completed"], ["completed", "Completed"]];
+    const [sortBy, setSortBy] = useState<number>(0);
 
     const [edit, setEdit] = useState<boolean>(false);
     const [editedList, setEditedList] = useState({ ...list });
 
     const updateHandler = async () => {
-        updateList(editedList, auth.token ?? '').then(() => {
+        updateList(editedList, auth.getToken() ?? '').then(() => {
             reset();
             mutateCallback();
         }).catch(err => {
@@ -75,7 +79,7 @@ const ListView = ({ list, mutateCallback }: { list: List, mutateCallback: () => 
     }
 
     const deleteHandler = async () => {
-        deleteList(list.id, auth.token ?? '').then(() => {
+        deleteList(list.id, auth.getToken() ?? '').then(() => {
             reset();
             mutateCallback();
         }).catch(err => {
@@ -88,7 +92,8 @@ const ListView = ({ list, mutateCallback }: { list: List, mutateCallback: () => 
         setEditedList({ ...list });
     }
 
-    const { data: tasks, error: taskError, mutate: taskMutat } = useFetchTasks(list.id, sortBy, auth.isReady && auth.isAuthenticated);
+    // if token exists, fetch the tasks
+    const { data: tasks, error: taskError, mutate: taskMutate } = useFetchTasks(list.id, sorting[sortBy][0], !!auth.getToken());
 
     if (taskError) {
         return (
@@ -104,56 +109,47 @@ const ListView = ({ list, mutateCallback }: { list: List, mutateCallback: () => 
 
     if (edit) {
         return (
-            <div className="flex flex-col w-full my-16" onDoubleClick={e => { e.stopPropagation(); reset(); }}>
-                <div className="w-full flex flex-row justify-between items-center px-8 py-2 rounded-lg border-2 hover:border-accent transition-colors duration-500">
-                    <input className="w-fit bg-inherit font-black text-2xl sm:text-3xl 2xl:text-5xl focus:outline-none"
-                        value={editedList.name}
-                        onDoubleClick={e => e.stopPropagation()}
-                        onChange={e => setEditedList({ ...editedList, name: e.target.value })}
-                    />
+            <div className="flex flex-col w-full my-16">
+                <div className="w-full flex flex-row">
+                    <div className="flex flex-grow flex-row border-5 border-r-0 border-secondary">
+                        <input type="text" className="w-4/5 flex flex-grow px-2 border-t-5 border-l-5 focus:outline-none font-light"
+                            onChange={e => setEditedList({ ...editedList, name: e.target.value })}
+                            defaultValue={editedList.name}
+                        />
+                    </div>
 
-                    <div className="flex flex-row space-x-4">
-                        <button className="flex aspect-square justify-center items-center rounded-full group hover:bg-accent transition-colors duration-500"
-                            onClick={updateHandler}>
-                            <Check className="p-2 stroke-2 text-3xl text-center group-active:animate-spinshrink group-hover:animate-wiggle" />
-                        </button>
-                        <button className="flex aspect-square justify-center items-center rounded-full group hover:bg-accent transition-colors duration-500"
-                            onClick={deleteHandler}>
-                            <Trash className="p-2 stroke-2 text-3xl text-center group-active:animate-spinshrink group-hover:animate-wiggle" />
-                        </button>
+                    <div className="flex flex-row space-x-2">
+                        <Button descriptor="Update" onClick={updateHandler} />
+                        <Button descriptor="Delete" onClick={deleteHandler} />
+                        <Button descriptor="Cancel" onClick={reset} />
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-8 2xl:gap-16 sm:px-8 py-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8 2xl:gap-16 py-4">
                     {tasks?.items.map((task) => (
-                        <TaskView key={task.id} task={task} mutateCallback={taskMutat} />
+                        <TaskView key={task.id} task={task} mutateCallback={taskMutate} />
                     ))}
-                    <AddTaskView list={list} mutateCallback={taskMutat} />
+                    <AddTaskView list={list} mutateCallback={taskMutate} />
                 </div>
-
-
-
             </div>
         );
     }
 
     return (
         <div className="flex flex-col w-full my-16" onDoubleClick={e => { e.stopPropagation(); reset(); setEdit(true); }}>
-            <div className="w-full flex flex-row justify-between items-center px-8 py-2 rounded-lg border-2 border-dashed border-primary">
-                <h1 className="w-fit bg-inherit font-black text-2xl sm:text-3xl 2xl:text-5xl outline-none">{list.name}</h1>
-                <div className="flex flex-row space-x-4">
-                    <button className="flex aspect-square justify-center items-center rounded-full group hover:bg-accent transition-colors duration-500"
-                        onClick={e => { e.stopPropagation(); setSortBy(sorting[(sorting.indexOf(sortBy) + 1) % sorting.length]); }}>
-                        {sort_emoji(sortBy)}
-                    </button>
-                </div>
+
+            <div className="w-full flex flex-row justify-between items-center py-2">
+                <h1 className="w-full flex bg-inherit font-black text-2xl sm:text-3xl 2xl:text-4xl outline-none">{list.name}</h1>
+
+                <Button descriptor={sorting[sortBy][1]} onClick={() => { setSortBy((sortBy + 1) % sorting.length) }} />
+
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-8 2xl:gap-16 sm:px-8 py-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8 2xl:gap-16 py-4">
                 {tasks?.items.map((task) => (
-                    <TaskView key={task.id} task={task} mutateCallback={taskMutat} />
+                    <TaskView key={task.id} task={task} mutateCallback={taskMutate} />
                 ))}
-                <AddTaskView list={list} mutateCallback={taskMutat} />
+                <AddTaskView list={list} mutateCallback={taskMutate} />
             </div>
 
 
@@ -164,17 +160,16 @@ const ListView = ({ list, mutateCallback }: { list: List, mutateCallback: () => 
 
 const AddListView = ({ mutateCallback }: { mutateCallback: () => void }) => {
 
+    const auth = useAuthStorage();
+
     const [show, setShow] = useState<boolean>(false);
-
     const [newList, setNewList] = useState({ name: "New List" });
-
-    const auth = useAuthenticated();
 
     const create = async () => {
         createList({
             name: newList.name,
-            owner: auth.id ?? '',
-        }, auth.token ?? '').then(() => {
+            owner: auth.getId() ?? '',
+        }, auth.getToken() ?? '').then(() => {
             reset();
             mutateCallback();
         }).catch(err => {
@@ -189,33 +184,26 @@ const AddListView = ({ mutateCallback }: { mutateCallback: () => void }) => {
 
     if (!show) {
         return (
-            <div className="flex flex-row items-center justify-center w-full rounded-lg border-2 border-dashed border-gray-300 group hover:border-accent transition-colors duration-500  cursor-pointer" onClick={() => setShow(true)}>
-                <Plus className="my-2 stroke-2 text-3xl text-center text-gray-300 group-hover:text-accent group-hover:animate-wiggle transition-colors duration-500 " />
+            <div className="flex flex-row items-center justify-center w-full rounded-lg border-2 border-dashed border-gray-300 group cursor-pointer" onClick={() => setShow(true)}>
+                <Plus className="my-2 stroke-2 text-3xl text-center text-gray-300 group-hover:animate-wiggle" />
             </div>
-
         )
     }
 
     return (
-        <div className="w-full flex flex-row justify-between items-center px-8 py-2 rounded-lg border-2 border-dashed border-gray-300 group hover:border-accent transition-colors duration-500  cursor-pointer"
-            onDoubleClick={e => { e.stopPropagation(); reset(); }}>
-            <input className="w-fit bg-inherit font-black text-2xl sm:text-3xl 2xl:text-5xl focus:outline-none"
-                value={newList.name}
-                onDoubleClick={e => e.stopPropagation()}
-                onChange={e => setNewList({ ...newList, name: e.target.value })}
-            />
+        <div className="flex flex-col w-full">
+            <div className="w-full flex flex-row">
+                <div className="flex flex-grow flex-row border-5 border-r-0 border-secondary">
+                    <input type="text" className="w-4/5 flex flex-grow px-2 border-t-5 border-l-5 focus:outline-none font-light"
+                        onChange={(e: any) => setNewList({ ...newList, name: e.target.value })}
+                        defaultValue={newList.name}
+                    />
+                </div>
 
-            <div className="flex flex-row space-x-4">
-                <button className="flex aspect-square justify-center items-center rounded-full group hover:bg-accent transition-colors duration-500"
-                    onClick={create}>
-                    <Check className="p-2 stroke-2 text-3xl text-center group-active:animate-spinshrink group-hover:animate-wiggle" />
-                </button>
-
-                <button className="flex aspect-square justify-center items-center rounded-full group hover:bg-accent transition-colors duration-500"
-                    onClick={reset}>
-                    <Cancel className="p-2 stroke-2 text-3xl text-center group-active:animate-spinshrink group-hover:animate-wiggle" />
-                </button>
-
+                <div className="flex flex-row space-x-2">
+                    <Button descriptor="Create" onClick={create} />
+                    <Button descriptor="Cancel" onClick={reset} />
+                </div>
             </div>
         </div>
     )
@@ -224,13 +212,13 @@ const AddListView = ({ mutateCallback }: { mutateCallback: () => void }) => {
 
 const TaskView = ({ task, mutateCallback }: { task: Task, mutateCallback: () => void }) => {
 
-    const auth = useAuthenticated();
+    const auth = useAuthStorage();
 
     const [edit, setEdit] = useState<boolean>(false);
     const [editedTask, setEditedTask] = useState({ ...task });
 
     const statusUpdateHandler = async (status: string) => {
-        updateTask({ ...task, status: status }, auth.token ?? '').then(() => {
+        updateTask({ ...task, status: status }, auth.getToken() ?? '').then(() => {
             reset();
             mutateCallback();
         }).catch(err => {
@@ -239,7 +227,7 @@ const TaskView = ({ task, mutateCallback }: { task: Task, mutateCallback: () => 
     }
 
     const updateHandler = async () => {
-        updateTask(editedTask, auth.token ?? '').then(() => {
+        updateTask(editedTask, auth.getToken() ?? '').then(() => {
             reset();
             mutateCallback();
         }).catch(err => {
@@ -248,7 +236,7 @@ const TaskView = ({ task, mutateCallback }: { task: Task, mutateCallback: () => 
     }
 
     const deleteHandler = async () => {
-        deleteTask(editedTask.id, auth.token ?? '').then(() => {
+        deleteTask(editedTask.id, auth.getToken() ?? '').then(() => {
             reset();
             mutateCallback();
         }).catch(err => {
@@ -263,51 +251,23 @@ const TaskView = ({ task, mutateCallback }: { task: Task, mutateCallback: () => 
 
     if (edit) {
         return (
-            <div className="flex flex-col w-full h-full px-8 py-4 rounded-lg shadow border-2 border-primary hover:border-accent transition-colors duration-500" onDoubleClick={e => { e.stopPropagation(); reset(); }}>
+            <div className="flex flex-col w-full h-full space-y-4">
 
                 {/* title */}
-                <div className="flex flex-row items-center justify-start" onDoubleClick={e => e.stopPropagation()}>
-                    <div className="flex flex-row items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7">
-                        {task_emoji(task)}
-                    </div>
-                    <input className="w-full ml-2 px-2 rounded-md border-2 border-dashed focus:border-accent focus:outline-none bg-inherit font-light transition-colors duration-500" type="text"
-                        defaultValue={task.name}
-                        onChange={(e) => setEditedTask({ ...editedTask, name: e.target.value })}
-                    />
-                </div>
+                <Input descriptor="Title" type="text" onChange={(e: any) => setEditedTask({ ...editedTask, name: e.target.value })} defaultValue={task.name} />
 
                 {/* deadline */}
-                <div className="my-4 flex flex-row items-center justify-start" onDoubleClick={e => e.stopPropagation()}>
-                    <div className="flex flex-row items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7">
-                        <Clock className="stroke-2" />
-                    </div>
-                    <input className="w-full ml-2 px-2 rounded-md border-2 border-dashed focus:border-accent focus:outline-none bg-inherit font-light transition-colors duration-500" type="datetime-local"
-                        defaultValue={convertTimeToInput(editedTask.timestamp)}
-                        onChange={(e) => setEditedTask({ ...editedTask, timestamp: Date.parse(e.target.value) })}
-                    />
-                </div>
+                <Input descriptor="Deadline" type="datetime-local" onChange={(e: any) => setEditedTask({ ...editedTask, timestamp: new Date(e.target.value).getTime() })} defaultValue={convertTimeToInput(task.timestamp)} />
 
                 {/* description */}
-                <div className="flex flex-row items-start justify-start" onDoubleClick={e => e.stopPropagation()}>
-                    <div className="flex flex-row items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7">
-                        <Archive className="stroke-2" />
-                    </div>
-                    <textarea className="w-full h-48 ml-2 px-2 rounded-md border-2 border-dashed focus:border-accent focus:outline-none bg-inherit font-light whitespace-pre-wrap transition-colors duration-500"
-                        defaultValue={task.description}
-                        onChange={(e) => setEditedTask({ ...editedTask, description: e.target.value })}
-                    />
-                </div>
+                <Textarea descriptor="Description" onChange={(e: any) => setEditedTask({ ...editedTask, description: e.target.value })} defaultValue={task.description} />
 
                 {/* actions */}
-                <div className="flex flex-row items-center justify-end mt-auto pt-4 space-x-4">
-                    <button className="flex aspect-square justify-center items-center rounded-full group hover:bg-accent transition-colors duration-500"
-                        onClick={updateHandler}>
-                        <Check className="p-2 stroke-2 text-3xl text-center text-secondary group-active:animate-spinshrink group-hover:animate-wiggle" />
-                    </button>
-                    <button className="flex aspect-square justify-center items-center rounded-full group hover:bg-accent transition-colors duration-500"
-                        onClick={deleteHandler}>
-                        <Trash className="p-2 stroke-2 text-3xl text-center text-secondary group-active:animate-spinshrink group-hover:animate-wiggle" />
-                    </button>
+
+                <div className="flex flex-row space-x-4 mt-auto">
+                    <Button descriptor="Update" onClick={updateHandler} />
+                    <Button descriptor="Delete" onClick={deleteHandler} />
+                    <Button descriptor="Cancel" onClick={reset} />
                 </div>
 
             </div>
@@ -317,47 +277,26 @@ const TaskView = ({ task, mutateCallback }: { task: Task, mutateCallback: () => 
 
 
     return (
-        <div className="flex flex-col w-full h-full px-8 py-4 rounded-lg shadow border-2 border-primary hover:border-accent transition-colors duration-500" onDoubleClick={e => { e.stopPropagation(); reset(); setEdit(true) }}>
+        <div className="flex flex-col w-full h-full px-12 py-8 border-5 border-secondary" onDoubleClick={e => { e.stopPropagation(); reset(); setEdit(true) }}>
 
             {/* title */}
-            <div className="flex flex-row items-center justify-start" onDoubleClick={e => e.stopPropagation()}>
-                <div className="flex flex-row items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7">
-                    {task_emoji(task)}
-                </div>
-                <h1 className="w-full ml-2 px-2 font-bold text-lg sm:text-xl 2xl:text-2xl">{task.name}</h1>
-            </div>
+            <h1 className="w-full px-2 font-bold text-2xl sm:text-3xl 2xl:text-4xl">
+                {task.name}
+            </h1>
 
             {/* deadline */}
-            <div className="my-4 flex flex-row items-center justify-start" onDoubleClick={e => e.stopPropagation()}>
-                <div className="flex flex-row items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7">
-                    <Clock className="stroke-2" />
-                </div>
-                <p className="w-full ml-2 px-2 font-light">
-                    {convertDate(task.timestamp)}
-                </p>
-            </div>
+            <p className="w-full px-2 font-light text-sm sm:text-base 2xl:text-lg">
+                {convertDate(task.timestamp)}
+            </p>
 
             {/* description */}
-            <div className="flex flex-row items-start justify-start" onDoubleClick={e => e.stopPropagation()}>
-                <div className="flex flex-row items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7">
-                    <Archive className="stroke-2" />
-                </div>
-                <p className="w-full ml-2 px-2 font-light whitespace-pre-wrap">
-                    {task.description ? task.description : 'No description'}
-                </p>
-            </div>
+            <p className="w-full pt-4 pb-24 px-2 font-light whitespace-pre-wrap text-sm sm:text-base 2xl:text-lg">
+                {task.description ? task.description : 'No description'}
+            </p>
 
             {/* actions */}
-            <div className="flex flex-row items-center justify-end mt-auto pt-4 space-x-4">
-                <button className="flex aspect-square justify-center items-center rounded-full group hover:bg-accent transition-colors duration-500"
-                    onClick={() => statusUpdateHandler(task.status === 'completed' ? 'not-completed' : 'completed')}>
-                    {
-                        task.status === 'completed' ?
-                            <Cancel className="p-2 stroke-2 text-3xl text-center text-secondary group-active:animate-spinshrink group-hover:animate-wiggle" />
-                            :
-                            <DoubleCheck className="p-2 stroke-2 text-3xl text-center text-secondary group-active:animate-spinshrink group-hover:animate-wiggle" />
-                    }
-                </button>
+            <div className="flex flex-row space-x-4 mt-auto">
+                <Button descriptor={task.status === 'completed' ? 'Re-Start' : 'Finish It'} onClick={() => statusUpdateHandler(task.status === 'completed' ? 'not-completed' : 'completed')} />
             </div>
 
         </div>
@@ -367,8 +306,9 @@ const TaskView = ({ task, mutateCallback }: { task: Task, mutateCallback: () => 
 
 const AddTaskView = ({ list, mutateCallback }: { list: List, mutateCallback: () => void }) => {
 
-    const [show, setShow] = useState<boolean>(false);
+    const auth = useAuthStorage();
 
+    const [show, setShow] = useState<boolean>(false);
     const [newTask, setNewTask] = useState({
         name: '',
         description: '',
@@ -377,8 +317,6 @@ const AddTaskView = ({ list, mutateCallback }: { list: List, mutateCallback: () 
         list: list.id,
     });
 
-    const auth = useAuthenticated();
-
     const create = async () => {
         createTask({
             name: newTask.name,
@@ -386,7 +324,7 @@ const AddTaskView = ({ list, mutateCallback }: { list: List, mutateCallback: () 
             timestamp: newTask.timestamp,
             status: newTask.status,
             list: newTask.list
-        }, auth.token ?? '').then(() => {
+        }, auth.getToken() ?? '').then(() => {
             reset();
             mutateCallback();
         }).catch(err => {
@@ -407,63 +345,34 @@ const AddTaskView = ({ list, mutateCallback }: { list: List, mutateCallback: () 
 
     if (!show) {
         return (
-            <div className="flex flex-row items-center justify-center w-full h-full rounded-lg border-2 border-dashed border-gray-300 group hover:border-accent transition-colors duration-500  cursor-pointer" onClick={() => setShow(true)}>
-                <Plus className="my-2 stroke-2 text-3xl text-center text-gray-300 group-hover:text-accent group-hover:animate-wiggle transition-colors duration-500 " />
+            <div className="flex flex-row items-center justify-center w-full h-full rounded-lg border-2 border-dashed border-gray-300 group cursor-pointer" onClick={() => setShow(true)}>
+                <Plus className="my-2 stroke-2 text-3xl text-center text-gray-300 group-hover:animate-wiggle" />
             </div>
         )
     }
 
     return (
-        <div className="flex flex-col w-full h-full px-8 py-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-accent transition-colors duration-500" onDoubleClick={reset}>
+        <div className="flex flex-col w-full h-full space-y-4">
 
             {/* title */}
-            <div className="flex flex-row items-center justify-start">
-                <div className="flex flex-row items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7">
-                    <Plus className="stroke-2" />
-                </div>
-
-                <input className="w-full ml-2 px-2 rounded-md border-2 border-dashed focus:border-accent focus:outline-none bg-inherit font-light transition-colors duration-500" type="text" placeholder="Title"
-                    onDoubleClick={e => e.stopPropagation()}
-                    onChange={(e) => { setNewTask({ ...newTask, name: e.target.value }) }} />
-            </div>
+            <Input descriptor="Title" type="text" onChange={(e: any) => setNewTask({ ...newTask, name: e.target.value })} defaultValue={newTask.name} />
 
             {/* deadline */}
-            <div className="my-4 flex flex-row items-center justify-start">
-                <div className="flex flex-row items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7">
-                    <Clock className="stroke-2" />
-                </div>
-
-                <input className="w-full ml-2 px-2 rounded-md border-2 border-dashed focus:border-accent focus:outline-none bg-inherit font-light transition-colors duration-500" type="datetime-local"
-                    defaultValue={convertTimeToInput(newTask.timestamp)}
-                    onDoubleClick={e => e.stopPropagation()}
-                    onChange={(e) => { setNewTask({ ...newTask, timestamp: new Date(e.target.value).getTime() }) }} />
-            </div>
+            <Input descriptor="Deadline" type="datetime-local" onChange={(e: any) => setNewTask({ ...newTask, timestamp: new Date(e.target.value).getTime() })} defaultValue={convertTimeToInput(newTask.timestamp)} />
 
             {/* description */}
-            <div className="flex flex-row items-start justify-start">
-                <div className="flex flex-row items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7">
-                    <Archive className="stroke-2" />
-                </div>
-
-                <textarea className="w-full h-48 ml-2 px-2 rounded-md border-2 border-dashed focus:border-accent focus:outline-none bg-inherit font-light transition-colors duration-500 whitespace-pre-wrap" placeholder="Description"
-                    onDoubleClick={e => e.stopPropagation()}
-                    onChange={(e) => { setNewTask({ ...newTask, description: e.target.value }) }} />
-            </div>
+            <Textarea descriptor="Description" onChange={(e: any) => setNewTask({ ...newTask, description: e.target.value })} defaultValue={newTask.description} />
 
             {/* actions */}
-            <div className="flex flex-row items-center justify-end mt-auto pt-4 space-x-4">
-                <button className="flex aspect-square justify-center items-center rounded-full group hover:bg-accent transition-colors duration-500" onClick={create}>
-                    <Plus className="p-2 stroke-2 text-3xl text-center text-secondary group-active:animate-spinshrink group-hover:animate-wiggle" />
-                </button>
-                <button className="flex aspect-square justify-center items-center rounded-full group hover:bg-accent transition-colors duration-500" onClick={reset}>
-                    <Cancel className="p-2 stroke-2 text-3xl text-center text-secondary group-active:animate-spinshrink group-hover:animate-wiggle" />
-                </button>
+
+            <div className="flex flex-row space-x-4 mt-auto">
+                <Button descriptor="Create" onClick={(e: any) => create()} />
+                <Button descriptor="Cancel" onClick={(e: any) => reset()} />
             </div>
 
         </div>
     )
 }
-
 
 // Helpers
 
@@ -485,46 +394,3 @@ const convertDate = (timestamp: number) => {
     return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ' at ' + date.toLocaleTimeString('en-GB', { hour: 'numeric', minute: 'numeric' });
 }
 
-
-const sort_emoji = (sortBy: string) => {
-    switch (sortBy) {
-        case "":
-            return <Emoji className="p-2 stroke-2 text-3xl text-center group-active:animate-spinshrink group-hover:animate-wiggle" />
-        case "completed":
-            return <EmojiSatisfied className="p-2 stroke-2 text-3xl text-center group-active:animate-spinshrink group-hover:animate-wiggle" />
-        case "not-completed":
-            return <EmojiThinkRight className="p-2 stroke-2 text-3xl text-center group-active:animate-spinshrink group-hover:animate-wiggle" />
-        case "deadline":
-            return <EmojiLookDown className="p-2 stroke-2 text-3xl text-center group-active:animate-spinshrink group-hover:animate-wiggle" />
-        case "overdue":
-            return <EmojiPuzzled className="p-2 stroke-2 text-3xl text-center group-active:animate-spinshrink group-hover:animate-wiggle" />
-        case "no-deadline":
-            return <EmojiSingLeftNote className="p-2 stroke-2 text-3xl text-center group-active:animate-spinshrink group-hover:animate-wiggle" />
-    }
-}
-
-const task_emoji = (task: Task) => {
-    if (task.status === 'completed') {
-        return <EmojiSatisfied className="stroke-2" />
-    }
-
-    if (task.timestamp === 0) {
-        return <EmojiSingLeftNote className="stroke-2" />
-    }
-
-    // calculate the days left
-    const today = Date.now();
-    const days = Math.floor((task.timestamp - today) / (1000 * 60 * 60 * 24));
-
-    // if the task is due this week
-    if (days <= 7 && days >= 0) {
-        return <EmojiLookDown className="stroke-2" />
-    }
-
-    // if task is overdue
-    if (days < 0) {
-        return <EmojiPuzzled className="stroke-2" />
-    }
-
-    return <Emoji className="stroke-2" />
-}

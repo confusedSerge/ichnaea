@@ -1,16 +1,21 @@
-import useAuthenticated from "../hook/useAuthenticated";
 import axios from "axios";
 import useSWR from "swr";
+
 import { ROUTES } from "./ROUTES";
+
+// Pagination
 import Pagination from "../interface/pagination";
+
+// Auth Hooks
+import useAuthStorage from "../hook/useAuthStorage";
+
+// Model
 import List from "../interface/list";
 import Task from "../interface/task";
 
-// List 
-
 export function useFetchLists(fetch: boolean) {
-    const auth = useAuthenticated();
-    const token = auth.token;
+    const auth = useAuthStorage();
+    const token = auth.getToken();
 
     const fetchLists = (url: string) => axios.get<Pagination<List>>(url, {
         headers: {
@@ -63,8 +68,8 @@ export const deleteList = async(id: string, token: string) => {
 // Task
 
 export function useFetchTasks(listid: string = "", filter: string = "", fetch: boolean = true) {
-    const auth = useAuthenticated();
-    const token = auth.token;
+    const auth = useAuthStorage();
+    const token = auth.getToken();
 
     const fetchTasks = (url: string) => axios.get<Pagination<Task>>(url, {
         headers: {
